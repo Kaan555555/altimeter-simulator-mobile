@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { COLORS } from '../src/styles/theme';
@@ -6,25 +7,61 @@ import RightPanel from '../src/components/RightPanel';
 import AltimeterDial from '../src/components/AltimeterDial';
 
 export default function App() {
+  const [altitude, setAltitude] = useState(0);
+  const [qnh, setQnh] = useState(1013.25);
+  const [unitMode, setUnitMode] = useState('ft');
+  
+  // YENİ: Senaryo ve Arıza State'leri
+  const [activeScenario, setActiveScenario] = useState<string | null>(null);
+  const [isFailed, setIsFailed] = useState(false);
+
+  // YENİ: Otomatik Senaryo Motoru
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (activeScenario && !isFailed) {
+      interval = setInterval(() => {
+        setAltitude((prev) => {
+          if (activeScenario === 'kalkis') {
+            if (prev >= 15000) { setActiveScenario(null); return 15000; }
+            return prev + 50; // Hızlıca tırman
+          } else if (activeScenario === 'seyir') {
+            return prev + (Math.random() * 20 - 10); // İrtifa hafifçe dalgalansın
+          } else if (activeScenario === 'inis') {
+            if (prev <= 0) { setActiveScenario(null); return 0; }
+            return prev - 50; // Hızlıca alçal
+          }
+          return prev;
+        });
+      }, 100); // Saniyede 10 kere güncelle
+    }
+    return () => clearInterval(interval);
+  }, [activeScenario, isFailed]);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         
-        {/* HEADER */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>⟨ Altimetre Simülatörü ⟩</Text>
           <Text style={styles.badge}>EGS DERSİ — KOKPİT GÖSTERGELERİ</Text>
         </View>
 
-        {/* MAIN LAYOUT */}
         <View style={styles.mainLayout}>
           
-          <LeftPanel />
+          <LeftPanel 
+            altitude={altitude} qnh={qnh} setQnh={setQnh}
+            unitMode={unitMode} setUnitMode={setUnitMode}
+          />
 
-          {/* INSTRUMENT: Altimetre Kadranı (SVG) */}
-          <AltimeterDial altitude={0} qnh={1013.25} />
+          <AltimeterDial 
+            altitude={altitude} qnh={qnh} isFailed={isFailed} 
+          />
 
-          <RightPanel />
+          <RightPanel 
+            altitude={altitude} setAltitude={setAltitude}
+            activeScenario={activeScenario} setActiveScenario={setActiveScenario}
+            isFailed={isFailed} setIsFailed={setIsFailed}
+          />
 
         </View>
 

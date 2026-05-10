@@ -1,39 +1,52 @@
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS } from '../styles/theme';
 
-export default function LeftPanel() {
+// TypeScript için prop tiplerini tanımlıyoruz
+interface LeftPanelProps {
+  altitude: number;
+  qnh: number;
+  setQnh: (val: number) => void;
+  unitMode: string;
+  setUnitMode: (val: string) => void;
+}
+
+export default function LeftPanel({ altitude, qnh, setQnh, unitMode, setUnitMode }: LeftPanelProps) {
+  const m = Math.round(altitude * 0.3048);
+  const inHg = (qnh * 0.02953).toFixed(2);
+
   return (
     <View style={styles.container}>
-      {/* İrtifa Kartı */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>| İRTİFA DEĞERİ</Text>
-        <Text style={styles.readout}>0</Text>
+        <Text style={styles.readout}>{Math.round(altitude)}</Text>
         <Text style={styles.unit}>FEET</Text>
-        <Text style={[styles.readout, { fontSize: 16, color: '#5a9aaa', marginTop: 10 }]}>0</Text>
+        <Text style={[styles.readout, { fontSize: 16, color: '#5a9aaa', marginTop: 10 }]}>{m}</Text>
         <Text style={styles.unit}>METRE</Text>
       </View>
 
-      {/* Birim Kartı */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>| BİRİM</Text>
         <View style={styles.btnRow}>
-          <TouchableOpacity style={[styles.btn, styles.btnActive]}><Text style={styles.btnTextActive}>FEET</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.btn}><Text style={styles.btnText}>METRE</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.btn, unitMode === 'ft' && styles.btnActive]} onPress={() => setUnitMode('ft')}>
+            <Text style={unitMode === 'ft' ? styles.btnTextActive : styles.btnText}>FEET</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.btn, unitMode === 'm' && styles.btnActive]} onPress={() => setUnitMode('m')}>
+            <Text style={unitMode === 'm' ? styles.btnTextActive : styles.btnText}>METRE</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* QNH Kartı */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>| QNH AYARI</Text>
         <View style={styles.qnhRow}>
-          <TouchableOpacity style={styles.btnSmall}><Text style={styles.btnText}>-</Text></TouchableOpacity>
-          <View style={styles.qnhDisplay}><Text style={styles.qnhText}>1013.25 hPa</Text></View>
-          <TouchableOpacity style={styles.btnSmall}><Text style={styles.btnText}>+</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.btnSmall} onPress={() => setQnh(Math.max(900, qnh - 0.25))}><Text style={styles.btnText}>-</Text></TouchableOpacity>
+          <View style={styles.qnhDisplay}><Text style={styles.qnhText}>{qnh.toFixed(2)} hPa</Text></View>
+          <TouchableOpacity style={styles.btnSmall} onPress={() => setQnh(Math.min(1050, qnh + 0.25))}><Text style={styles.btnText}>+</Text></TouchableOpacity>
         </View>
-        <Text style={styles.qnhInhg}>29.92 inHg</Text>
+        <Text style={styles.qnhInhg}>{inHg} inHg</Text>
       </View>
 
-      {/* Alarm Kartı */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>| ALARM DURUMU</Text>
         <View style={styles.alarmStatus}>
