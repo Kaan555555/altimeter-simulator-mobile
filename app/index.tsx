@@ -6,33 +6,54 @@ import LeftPanel from '../src/components/LeftPanel';
 import RightPanel from '../src/components/RightPanel';
 import AltimeterDial from '../src/components/AltimeterDial';
 
+export interface LogData {
+  time: string;
+  event: string;
+  alt: number;
+  qnh: number;
+}
+
 export default function App() {
   const [altitude, setAltitude] = useState(0);
   const [qnh, setQnh] = useState(1013.25);
   const [unitMode, setUnitMode] = useState('ft');
-  
-  // YENİ: Senaryo ve Arıza State'leri
   const [activeScenario, setActiveScenario] = useState<string | null>(null);
   const [isFailed, setIsFailed] = useState(false);
+  const [logs, setLogs] = useState<LogData[]>([]);
 
-  // YENİ: Otomatik Senaryo Motoru
+  // Log ekleme motoru
+  const addLog = (eventMsg: string) => {
+    const timeStr = new Date().toLocaleTimeString('tr-TR', { hour12: false });
+    setLogs(prev => [{ time: timeStr, event: eventMsg, alt: altitude, qnh: qnh }, ...prev]);
+  };
+
+  // Olayları izle ve logla
+  useEffect(() => {
+    if (isFailed) {
+      addLog("SİSTEM ARIZASI: FAIL");
+    } else if (activeScenario) {
+      addLog(`SENARYO: ${activeScenario.toUpperCase()}`);
+    } else {
+      addLog("SİSTEM: BEKLEMEDE");
+    }
+  }, [activeScenario, isFailed]);
+
+  // Otomatik İrtifa Değişim Motoru
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (activeScenario && !isFailed) {
       interval = setInterval(() => {
         setAltitude((prev) => {
           if (activeScenario === 'kalkis') {
-            if (prev >= 15000) { setActiveScenario(null); return 15000; }
-            return prev + 50; // Hızlıca tırman
+            return prev >= 15000 ? (setActiveScenario(null), 15000) : prev + 50;
           } else if (activeScenario === 'seyir') {
-            return prev + (Math.random() * 20 - 10); // İrtifa hafifçe dalgalansın
+            return prev + (Math.random() * 20 - 10);
           } else if (activeScenario === 'inis') {
-            if (prev <= 0) { setActiveScenario(null); return 0; }
-            return prev - 50; // Hızlıca alçal
+            return prev <= 0 ? (setActiveScenario(null), 0) : prev - 50;
           }
           return prev;
         });
-      }, 100); // Saniyede 10 kere güncelle
+      }, 100);
     }
     return () => clearInterval(interval);
   }, [activeScenario, isFailed]);
@@ -40,31 +61,21 @@ export default function App() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        
         <View style={styles.header}>
           <Text style={styles.headerTitle}>⟨ Altimetre Simülatörü ⟩</Text>
           <Text style={styles.badge}>EGS DERSİ — KOKPİT GÖSTERGELERİ</Text>
         </View>
 
         <View style={styles.mainLayout}>
-          
-          <LeftPanel 
-            altitude={altitude} qnh={qnh} setQnh={setQnh}
-            unitMode={unitMode} setUnitMode={setUnitMode}
-          />
-
-          <AltimeterDial 
-            altitude={altitude} qnh={qnh} isFailed={isFailed} 
-          />
-
+          <LeftPanel altitude={altitude} qnh={qnh} setQnh={setQnh} unitMode={unitMode} setUnitMode={setUnitMode} />
+          <AltimeterDial altitude={altitude} qnh={qnh} isFailed={isFailed} />
           <RightPanel 
             altitude={altitude} setAltitude={setAltitude}
             activeScenario={activeScenario} setActiveScenario={setActiveScenario}
             isFailed={isFailed} setIsFailed={setIsFailed}
+            logs={logs}
           />
-
         </View>
-
       </ScrollView>
       <StatusBar style="light" />
     </SafeAreaView>
